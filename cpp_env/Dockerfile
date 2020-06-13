@@ -1,0 +1,31 @@
+# Article on creating docker dev env: https://www.codemag.com/Article/1811021/Docker-for-Developers
+FROM ubuntu:latest
+LABEL maintainer="Jan Kleszczyński <jankleszcz@gmail.com>"
+# Install basics
+RUN apt-get update && \
+    apt-get install -y sudo curl git-core gnupg locales wget vim && \
+    locale-gen en_US.UTF-8 && \
+    adduser --quiet --disabled-password --shell /bin/bash --home /home/devuser --gecos "Dev User" devuser && \
+    echo "devuser:devuser" | chpasswd && \
+    usermod -aG sudo devuser
+# Add script for finding distro codename as lsb_release isn't installed
+ADD scripts/codename /usr/local/bin/codename
+RUN chmod a+x /usr/local/bin/codename
+# Install cmake 3.17.3
+RUN mkdir ~/cmake_download && cd ~/cmake_download && \
+    wget -q https://github.com/Kitware/CMake/releases/download/v3.17.3/cmake-3.17.3-Linux-x86_64.sh && \
+    chmod u+x cmake-3.17.3-Linux-x86_64.sh && \
+    ./cmake-3.17.3-Linux-x86_64.sh --skip-license --prefix="/usr/local/" && \
+    rm -rf ~/cmake_download
+# Install gcc 10
+RUN echo "deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu $(codename) main" >> /etc/apt/sources.list && \
+    echo "deb-src http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu $(codename) main" >> /etc/apt/sources.list && \
+    apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 60C317803A41BA51845E371A1E9377A2BA9EF27F && \
+    apt-get update && \
+    apt-get install -y gcc-10 g++-10
+# TODO:
+#   - alias gcc-10 as gcc and cc
+#   - install vcpkg and gdb
+
+# Switch user
+USER devuser
